@@ -3,5 +3,6 @@
     public class Order
     {
         public String Name { get; set; }
+        public bool IsValid { get; set; }=true;
     }
 }
