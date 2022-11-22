@@ -12,7 +12,7 @@ public class EuropeanOrderConsumer : IConsumer<Order>
         {
             throw new InvalidOperationException("Order Is Not Valid");
         }
-
+        
         Console.Out.WriteLineAsync("European Order "+ context.Message.Name);
         return Task.CompletedTask;
     }
@@ -47,8 +47,9 @@ public class EuropeanOrderConsumerDefinition : ConsumerDefinition<EuropeanOrderC
         {
             rmq.Bind<Order>(x =>
             {
-                x.RoutingKey = "192.168.13.*";
-                x.ExchangeType = ExchangeType.Topic;
+                //x.RoutingKey = "192.168.13.*";
+                x.SetBindingArgument("region","Europe");
+                x.ExchangeType = ExchangeType.Headers;
             });
         }
     }

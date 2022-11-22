@@ -47,8 +47,9 @@ public class AsianOrderConsumerDefinition : ConsumerDefinition<AsianOrderConsume
         {
             rmq.Bind<Order>(x =>
             {
-                x.RoutingKey = "192.168.12.*";
-                x.ExchangeType = ExchangeType.Topic;
+                //x.RoutingKey = "192.168.12.*";
+                x.SetBindingArgument("region","Asia");
+                x.ExchangeType = ExchangeType.Headers;
             });
         }
     }
