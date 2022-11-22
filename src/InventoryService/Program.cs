@@ -1,6 +1,4 @@
-using System.Reflection;
 using InventoryService;
-using MassTransit;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,7 +10,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 //Configure Mass Transit
-builder.Services.ConfigMassTransitCustomRabbitMq();
+builder.Services.ConfigureHeaderExchangeWithMassTransit();
 
 var app = builder.Build();
 
@@ -22,6 +20,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
 
 app.UseHttpsRedirection();
 

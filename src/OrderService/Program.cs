@@ -1,7 +1,6 @@
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 using Model;
-using OrderService;
 using RabbitMQ.Client;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,10 +19,11 @@ builder.Services.AddMassTransit(configure =>
 {
     configure.UsingRabbitMq((ctx, cfg) =>
     {
+        
         cfg.Host(new Uri("amqp://guest:guest@localhost:5672"));
         cfg.ConfigureEndpoints(ctx);
         cfg.Publish<Order>(c =>
-            c.ExchangeType=ExchangeType.Topic);
+            c.ExchangeType=ExchangeType.Headers);
 
     });
 });
@@ -67,7 +67,8 @@ app.MapPost("/order/send", async (IPublishEndpoint orderPublisher,[FromBody]Orde
     
     await orderPublisher.Publish(order, context =>
     {
-        context.SetRoutingKey(order.Name);
+        //context.SetRoutingKey(order.Name);
+        context.Headers.Set("region",order.Region);
     });
 });
 

@@ -1,11 +1,13 @@
 ﻿using System.Reflection;
 using MassTransit;
+using Model;
+using RabbitMQ.Client;
 
 namespace InventoryService;
 
 public static class ConfigureMassTransit
 {
-    public static void ConfigMassTransitTemporaryQueue(this IServiceCollection services)
+    public static IServiceCollection ConfigMassTransitTemporaryQueue(this IServiceCollection services)
     {
         services.AddMassTransit(configurator =>
         {
@@ -22,12 +24,15 @@ public static class ConfigureMassTransit
                 {
                     e.Temporary = true;
                     e.InstanceId = "63";
+                    
                 });
+            
 
             configurator.UsingRabbitMq((context, cfg) => cfg.ConfigureEndpoints(context));
         });
+        return services;
     }
-    public static void ConfigMassTransitCustomRabbitMq(this IServiceCollection services)
+    public static IServiceCollection ConfigMassTransitCustomRabbitMq(this IServiceCollection services)
     {
         services.AddMassTransit(configure =>
         {
@@ -82,6 +87,69 @@ public static class ConfigureMassTransit
                 // if specified, limits the wait time when stopping the bus
                 options.StopTimeout = TimeSpan.FromSeconds(30);
             });
+        return services;
 
+    }
+    public static IServiceCollection ConfigureHeaderExchangeWithMassTransit(this IServiceCollection services)
+    {
+        var busControl = Bus.Factory.CreateUsingRabbitMq((cfg) =>
+        {
+            cfg.Host(host: "localhost", virtualHost: "/", rabitcfg =>
+            {
+                rabitcfg.Username("guest");
+                rabitcfg.Password("guest");
+                rabitcfg.PublisherConfirmation = true;
+            });
+            cfg.Publish<Order>(c =>
+                c.ExchangeType = ExchangeType.Headers);
+
+            cfg.ReceiveEndpoint("order-queue-AF", e =>
+            {
+                e.ConfigureConsumeTopology = false;
+                e.Lazy = true;
+                e.PrefetchCount = 20;
+
+                e.Bind<Order>(x =>
+                {
+                    x.ExchangeType = ExchangeType.Headers;
+                    x.SetBindingArgument("region", "Africa");
+
+                });
+                e.Consumer<GeneralOrderConsumer>();
+            });
+            cfg.ReceiveEndpoint("order-queue-EU", e =>
+            {
+                e.ConfigureConsumeTopology = false;
+                e.Lazy = true;
+                e.PrefetchCount = 20;
+
+                e.Bind<Order>(x =>
+                {
+                    x.ExchangeType = ExchangeType.Headers;
+                    x.SetBindingArgument("region", "Europe");
+
+                });
+                e.Consumer<GeneralOrderConsumer>();
+            });
+            cfg.ReceiveEndpoint("order-queue-AS", e =>
+            {
+                e.ConfigureConsumeTopology = false;
+                e.Lazy = true;
+                e.PrefetchCount = 20;
+
+                e.Bind<Order>(x =>
+                {
+                    x.ExchangeType = ExchangeType.Headers;
+                    x.SetBindingArgument("region", "Asian");
+
+                });
+                e.Consumer<GeneralOrderConsumer>();
+            });
+        });
+        //30 Second wait for rabbitmq  
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        busControl.StartAsync(cancellation.Token);
+
+        return services;
     }
 }
